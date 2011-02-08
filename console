@@ -1,0 +1,67 @@
+#!/usr/bin/env ruby
+#require File.dirname(__FILE__) + '/../config/boot'
+#require File.expand_path('../../config/boot', __FILE__)
+require 'irb'
+require 'irb/completion'
+#require 'map_by_method'
+#require 'what_methods'
+require 'pp'
+
+require_relative 'lib/general.rb'
+
+
+class InteractiveGcodeGenerator < GcodeGenerator
+   include IRB::ExtendCommandBundle # so that Marshal.dump works
+   
+end
+
+#ARGV.clear
+#IRB.start
+
+module IRB
+   def IRB.parse_opts
+     # Don't touch ARGV, which belongs to the app which called this module.
+   end
+
+   def IRB.start_session(*args)
+     unless $irb
+       IRB.setup nil
+       ## maybe set some opts here, as in parse_opts in irb/init.rb?
+     end
+
+     workspace = WorkSpace.new(*args)
+
+     if @CONF[:SCRIPT] ## normally, set by parse_opts
+       $irb = Irb.new(workspace, @CONF[:SCRIPT])
+     else
+       $irb = Irb.new(workspace)
+     end
+
+     @CONF[:IRB_RC].call($irb.context) if @CONF[:IRB_RC]
+     @CONF[:MAIN_CONTEXT] = $irb.context
+
+     trap 'INT' do
+       $irb.signal_handle
+     end
+
+     custom_configuration if defined?(IRB.custom_configuration)
+
+     catch :IRB_EXIT do
+       $irb.eval_input
+     end
+
+     ## might want to reset your app's interrupt handler here
+   end
+end
+
+if __FILE__ == $0
+   x = InteractiveGcodeGenerator.new
+   puts 'gcode generation subshell'
+   IRB.start_session(x)
+   #puts "\nStarted irb shell for x with current binding"
+   #IRB.start_session(binding, x)
+   #puts "\nRestarted irb shell for x with current binding"
+   #$irb.eval_input
+   #puts "\nExited irb shell"
+   p x
+end
