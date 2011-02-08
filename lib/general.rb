@@ -42,7 +42,7 @@ class GcodeGenerator < CNCGenerator
     @x = @y = @z = 0
     g MODE_ABSOLUTE # Intentionally normalizing everything to absolute
     g RAPID, X:x, Y:y, Z:z
-    self.instance_eval(&job)
+    self.instance_eval(&job) if job
     g RAPID, X:0, Y:0, Z:0
   end
 
